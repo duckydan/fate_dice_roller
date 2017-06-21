@@ -20,84 +20,106 @@ function fate_utils_update_projects_alter(&$projects) {
 /**
  * Implements hook_comment_presave().
  */
- 
- # TODO check for the field_roll_modifier field type and instance attached to the comment entity
- 
+
 function fate_utils_comment_presave($comment) {
-	if (!$comment->field_roll['und'][0]['value'] && is_null($comment->field_roll_modifier['und'][0]['value'])==false) {
-	
-	$firstdie = (rand(0,2))-1;
-	$seconddie = (rand(0,2))-1;
-	$thirddie = (rand(0,2))-1;
-	$fourthdie = (rand(0,2))-1;
-	
-	$modifier = $comment->field_roll_modifier['und'][0]['value'];
-	
-	if ($modifier > 0) {
-		$modifier_display = '+'.intval($modifier);
-	} else {
-		$modifier_display = $modifier;
-	}
-	
-	$roll = $firstdie+$seconddie+$thirddie+$fourthdie+$modifier;
-	
-	$roll_display = _get_font_awesome_dice($firstdie).' '._get_font_awesome_dice($seconddie).' '._get_font_awesome_dice($thirddie).' '._get_font_awesome_dice($fourthdie);
+  // Here we look at the comment to make sure nothing is already in 'Roll result'.
+  $comment_field_roll_items = field_get_items('comment', $comment, 'field_roll');
+  // Here we look at the comment to see if something has been entered in 'Roll modifier'.
+  $comment_field_roll_modifier = field_get_items('comment', $comment, 'field_roll_modifier');
+  
+  // dsm($comment_field_roll_items);
+  // dsm($comment_field_roll_modifier);
 
- 		$comment->field_roll['und'][0]['value'] = $roll_display.' with a '.$modifier_display.' added to the roll for a total of: '.$roll. ' ('._ladder($roll).')'; 
- 		$comment->field_roll['und'][0][format] = 'full_html'; 
- 	}
- }
- 
- function fate_utils_node_presave($node) {
- 
-  if (isset($node->field_roll['und'][0]['value'])) {
- 
-	if (!$node->field_roll['und'][0]['value'] && is_null($node->field_roll_modifier['und'][0]['value'])==false) {
-	
-	$firstdie = (rand(0,2))-1;
-	$seconddie = (rand(0,2))-1;
-	$thirddie = (rand(0,2))-1;
-	$fourthdie = (rand(0,2))-1;
-	
-	$modifier = $node->field_roll_modifier['und'][0]['value'];
-	
-	if ($modifier > 0) {
-		$modifier_display = '+'.intval($modifier);
-	} else {
-		$modifier_display = $modifier;
-	}
-	
-	$roll = $firstdie+$seconddie+$thirddie+$fourthdie+$modifier;
-	
-	$roll_display = _get_font_awesome_dice($firstdie).' '._get_font_awesome_dice($seconddie).' '._get_font_awesome_dice($thirddie).' '._get_font_awesome_dice($fourthdie);
+  if ((count($comment_field_roll_items)==0) && (count($comment_field_roll_modifier)==1)) {
+	// If a modifier (even 0) is set and no results exist, do the roll.
+    $firstdie = (rand(0, 2)) - 1;
+    $seconddie = (rand(0, 2)) - 1;
+    $thirddie = (rand(0, 2)) - 1;
+    $fourthdie = (rand(0, 2)) - 1;
 
- 		$node->field_roll['und'][0]['value'] = $roll_display.' with a '.$modifier_display.' added to the roll for a total of: '.$roll. ' ('._ladder($roll).')'; 
- 		$node->field_roll['und'][0][format] = 'full_html'; 
- 	}
- }
- }
- 
+    $modifier = $comment->field_roll_modifier['und'][0]['value'];
 
- 
+    if ($modifier > 0) {
+	  // In Fate, a plus sign is used for any positive number, so convert to interger.
+      $modifier_display = '+' . intval($modifier);
+    }
+    else {
+	  // If they entered a plain integer (naughty) then handle it.
+	  // TODO Should probably sanitize this.
+      $modifier_display = $modifier;
+    }
+
+    // Total up the roll of all four dice
+    $roll = $firstdie + $seconddie + $thirddie + $fourthdie + $modifier;
+	
+	// Convert the four dice results into sweet Font Awesome glyfs (SO COOL).
+    $roll_display = _get_font_awesome_dice($firstdie)
+      . ' ' . _get_font_awesome_dice($seconddie)
+      . ' ' . _get_font_awesome_dice($thirddie)
+      . ' ' . _get_font_awesome_dice($fourthdie);
+    
+	// Shove the resulting HTML into the Roll result field.
+    $comment->field_roll['und'][0]['value'] = $roll_display . ' with a '
+      . $modifier_display . ' added to the roll for a total of: '
+      . $roll . ' (' . _ladder($roll) . ')';
+
+	// Set the format. There should be a better way to do this.
+    $comment->field_roll['und'][0]['format'] = 'full_html';
+  }
+}
+
+
 function _get_font_awesome_dice($value) {
-	if($value==-1) {$die='<i class="fa fa-minus-square"></i>';}
-	if($value==0) {$die='<i class="fa fa-square"></i>';}
-	if($value==1) {$die='<i class="fa fa-plus-square"></i>';}
-	return $die;
+  $die = '<i class="fa fa-square"></i>';
+
+  if ($value == -1) {
+    $die = '<i class="fa fa-minus-square"></i>';
+  }
+  if ($value == 0) {
+    $die = '<i class="fa fa-square"></i>';
+  }
+  if ($value == 1) {
+    $die = '<i class="fa fa-plus-square"></i>';
+  }
+  return $die;
 }
 
 
 function _ladder($value) {
-	if($value > 7) {$adjective='Legendary';}
-	if($value == 7) {$adjective='Epic';}
-	if($value == 6) {$adjective='Fantastic';}
-	if($value == 5) {$adjective='Superb';}
-	if($value == 4) {$adjective='Great';}
-	if($value == 3) {$adjective='Good';}
-	if($value == 2) {$adjective='Fair';}
-	if($value == 1) {$adjective='Average';}
-	if($value == 0) {$adjective='Mediocre';}
-	if($value == -1) {$adjective='Poor';}
-	if($value < -1) {$adjective='Terrible';}
-	return $adjective;
+  $adjective = 'Good';
+
+  if ($value > 7) {
+    $adjective = 'Legendary';
+  }
+  if ($value == 7) {
+    $adjective = 'Epic';
+  }
+  if ($value == 6) {
+    $adjective = 'Fantastic';
+  }
+  if ($value == 5) {
+    $adjective = 'Superb';
+  }
+  if ($value == 4) {
+    $adjective = 'Great';
+  }
+  if ($value == 3) {
+    $adjective = 'Good';
+  }
+  if ($value == 2) {
+    $adjective = 'Fair';
+  }
+  if ($value == 1) {
+    $adjective = 'Average';
+  }
+  if ($value == 0) {
+    $adjective = 'Mediocre';
+  }
+  if ($value == -1) {
+    $adjective = 'Poor';
+  }
+  if ($value < -1) {
+    $adjective = 'Terrible';
+  }
+  return $adjective;
 }
