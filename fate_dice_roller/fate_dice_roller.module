@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Fate Dice Roller feature.
+ */
+
+include_once 'fate_dice_roller.features.inc';
