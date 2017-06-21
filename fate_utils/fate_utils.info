@@ -1,0 +1,7 @@
+name = Fate Utilities
+description = Various custom functions needed for Fate Groups.
+package = Fate Groups
+core = 7.x
+project = "Fate Groups"
+version = "7.x-1"
+datestamp = "1408563881"
